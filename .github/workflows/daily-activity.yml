@@ -20,7 +20,7 @@ jobs:
 
       - name: Fetch user repos via GitHub API
         env:
-          GH_TOKEN: ${{ secrets.TRACKER_TOKEN }}
+          GH_TOKEN: ${{ secrets.PAT_TOKEN }}
         run: |
           mkdir -p logs
           echo "# Daily Activity Report ($TODAY)" > logs/$TODAY.md
