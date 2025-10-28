@@ -16,7 +16,9 @@ jobs:
       - name: Set up environment
         run: |
           sudo timedatectl set-timezone Asia/Colombo
-          echo "TODAY=$(date +'%Y-%m-%d')" >> $GITHUB_ENV
+          echo "TODAY=$(TZ='Asia/Colombo' date +'%Y-%m-%d')" >> $GITHUB_ENV
+          echo "TODAY_START=$(TZ='Asia/Colombo' date -d 'today 00:00:00' +'%Y-%m-%dT%H:%M:%S%z')" >> $GITHUB_ENV
+          echo "TODAY_END=$(TZ='Asia/Colombo' date -d 'today 23:59:59' +'%Y-%m-%dT%H:%M:%S%z')" >> $GITHUB_ENV
 
       - name: Fetch user repos via GitHub API
         env:
@@ -25,24 +27,61 @@ jobs:
           mkdir -p logs
           echo "# Daily Activity Report ($TODAY)" > logs/$TODAY.md
           echo "" >> logs/$TODAY.md
-          echo "Generated at $(date '+%Y-%m-%d %H:%M:%S %Z')" >> logs/$TODAY.md
+          echo "Generated at $(TZ='Asia/Colombo' date '+%Y-%m-%d %H:%M:%S %Z')" >> logs/$TODAY.md
           echo "" >> logs/$TODAY.md
 
-          # Fetch all repos you have access to
-          repos=$(curl -s -H "Authorization: token $GH_TOKEN" "https://api.github.com/user/repos?per_page=100" | jq -r '.[].full_name')
+          # Initialize counters
+          TOTAL_REPOS_CHECKED=0
+          REPOS_WITH_COMMITS=0
+          TOTAL_COMMITS=0
+
+          # Get current user login
+          USER_LOGIN=$(curl -s -H "Authorization: token $GH_TOKEN" https://api.github.com/user | jq -r '.login')
+          echo "USER_LOGIN=$USER_LOGIN" >> $GITHUB_ENV
+
+          # Fetch all repos you have access to (with pagination)
+          page=1
+          repos=""
+          while true; do
+            page_repos=$(curl -s -H "Authorization: token $GH_TOKEN" "https://api.github.com/user/repos?per_page=100&page=$page" | jq -r '.[].full_name')
+            if [ -z "$page_repos" ] || [ "$page_repos" = "null" ]; then
+              break
+            fi
+            repos="$repos $page_repos"
+            page=$((page + 1))
+          done
 
           for repo in $repos; do
+            TOTAL_REPOS_CHECKED=$((TOTAL_REPOS_CHECKED + 1))
+            
             # Get commits made today by you in that repo
+            # Convert Colombo timezone to UTC for GitHub API
+            since_utc=$(TZ='Asia/Colombo' date -d 'today 00:00:00' -u +'%Y-%m-%dT%H:%M:%SZ')
+            until_utc=$(TZ='Asia/Colombo' date -d 'today 23:59:59' -u +'%Y-%m-%dT%H:%M:%SZ')
+            
             commits=$(curl -s -H "Authorization: token $GH_TOKEN" \
-              "https://api.github.com/repos/$repo/commits?since=${TODAY}T00:00:00Z&until=${TODAY}T23:59:59Z&author=$(curl -s -H 'Authorization: token $GH_TOKEN' https://api.github.com/user | jq -r '.login')" \
+              "https://api.github.com/repos/$repo/commits?since=$since_utc&until=$until_utc&author=$USER_LOGIN" \
               | jq -r '.[] | "- " + .commit.message + " (" + .html_url + ")"')
 
-            if [ -n "$commits" ]; then
+            if [ -n "$commits" ] && [ "$commits" != "null" ]; then
               echo "## [$repo](https://github.com/$repo)" >> logs/$TODAY.md
               echo "$commits" >> logs/$TODAY.md
               echo "" >> logs/$TODAY.md
+              REPOS_WITH_COMMITS=$((REPOS_WITH_COMMITS + 1))
+              
+              # Count commits for this repo
+              commit_count=$(curl -s -H "Authorization: token $GH_TOKEN" \
+                "https://api.github.com/repos/$repo/commits?since=$since_utc&until=$until_utc&author=$USER_LOGIN" \
+                | jq '. | length')
+              TOTAL_COMMITS=$((TOTAL_COMMITS + commit_count))
             fi
           done
+
+          # Set environment variables for README
+          echo "TOTAL_REPOS_CHECKED=$TOTAL_REPOS_CHECKED" >> $GITHUB_ENV
+          echo "REPOS_WITH_COMMITS=$REPOS_WITH_COMMITS" >> $GITHUB_ENV
+          echo "TOTAL_COMMITS=$TOTAL_COMMITS" >> $GITHUB_ENV
+          echo "LOG_FILE=logs/$TODAY.md" >> $GITHUB_ENV
 
           if ! grep -q "##" logs/$TODAY.md; then
             echo "_No commits found for today._" >> logs/$TODAY.md
@@ -86,6 +125,6 @@ jobs:
         run: |
           git config user.name "yasandu0505"
           git config user.email "yasanduyaka2005@gmail.com"
-          git add logs/
+          git add logs/ README.md
           git commit -m "Add daily activity log for $TODAY" || echo "No changes to commit"
-          git push https://x-access-token:${PAT_TOKEN}@github.com/yasandu0505/daily-commit-tracker.git
+          git push https://x-access-token:${GITHUB_TOKEN}@github.com/yasandu0505/daily-commit-tracker.git
