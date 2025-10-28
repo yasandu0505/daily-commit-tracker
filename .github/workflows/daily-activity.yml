@@ -98,32 +98,19 @@ jobs:
             echo "" >> "$README"
           fi
 
-          # Remove any previous statistics section and headline
-          # Keep the rest of README intact by removing from "# Daily Commit Tracker" to the end
-          awk -v RS='' -v ORS='\n\n' '
-            BEGIN { printed=0 }
-            {
-              if ($0 ~ /^# Daily Commit Tracker/) {
-                if (printed==0) { printed=1; next }
-              }
-              print $0
-            }' "$README" > "${README}.tmp" || cp "$README" "${README}.tmp"
-
-          # Prepend the new Latest snippet with proper line breaks
+          # Completely overwrite README with fresh content
           cat > "$README" << EOF
-          # Daily Commit Tracker
+# Daily Commit Tracker
 
-          ## Statistics for ${TODAY}
+## Statistics for ${TODAY}
 
-          - **Repositories scanned:** ${TOTAL_REPOS_CHECKED}
-          - **Repositories changed:** ${REPOS_WITH_COMMITS}
-          - **Total commits:** ${TOTAL_COMMITS}
+- **Repositories scanned:** ${TOTAL_REPOS_CHECKED}
+- **Repositories changed:** ${REPOS_WITH_COMMITS}
+- **Total commits:** ${TOTAL_COMMITS}
 
-          [View detailed log](${LOG_FILE})
+[View detailed log](${LOG_FILE})
 
-          EOF
-          cat "${README}.tmp" >> "$README"
-          rm -f "${README}.tmp"
+EOF
 
           echo "README updated. Preview:"
           sed -n '1,20p' README.md || true
