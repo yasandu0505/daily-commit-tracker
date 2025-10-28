@@ -4,10 +4,17 @@
 
 - **Repositories scanned:** 59
 - **Repositories changed:** 5
-- **Total commits:** 42
+- **Total commits:** 46
 
 [View detailed log](logs/2025-10-28.md)
 
+## Statistics for 2025-10-28
+
+- **Repositories scanned:** 59
+- **Repositories changed:** 5
+- **Total commits:** 42
+
+[View detailed log](logs/2025-10-28.md)
 
 ## Latest activity (2025-10-28)\n\n- Repositories scanned: 59\n- Repositories changed: 5\n- Total commits (you): 39\n\n[View detailed log](logs/2025-10-28.md)\n\n
 
