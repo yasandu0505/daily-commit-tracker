@@ -48,6 +48,38 @@ jobs:
             echo "_No commits found for today._" >> logs/$TODAY.md
           fi
 
+      - name: Ensure README exists and update Latest Activity section
+        run: |
+          README="README.md"
+          # If README.md does not exist, create a basic one
+          if [ ! -f "$README" ]; then
+            echo "# Daily Commit Tracker" > "$README"
+            echo "" >> "$README"
+            echo "This repository collects a daily summary of commits across my projects." >> "$README"
+            echo "" >> "$README"
+          fi
+
+          # Build the Latest Activity snippet
+          LATEST_SNIPPET="## Latest activity (${TODAY})\n\n- Repositories scanned: ${TOTAL_REPOS_CHECKED}\n- Repositories changed: ${REPOS_WITH_COMMITS}\n- Total commits (you): ${TOTAL_COMMITS}\n\n[View detailed log](${LOG_FILE})\n\n"
+
+          # Remove any previous "Latest activity" section (simple heuristic: remove first occurrence)
+          # Keep the rest of README intact by removing from "## Latest activity" to the next blank line after two newlines
+          awk -v RS='' -v ORS='\n\n' '
+            BEGIN { printed=0 }
+            {
+              if ($0 ~ /^## Latest activity/) {
+                if (printed==0) { printed=1; next }
+              }
+              print $0
+            }' "$README" > "${README}.tmp" || cp "$README" "${README}.tmp"
+
+          # Prepend the new Latest snippet to the README.tmp and overwrite README
+          printf "%s\n\n%s" "$LATEST_SNIPPET" "$(cat ${README}.tmp)" > "$README"
+          rm -f "${README}.tmp"
+
+          echo "README updated. Preview:"
+          sed -n '1,20p' README.md || true
+
       - name: Commit and push daily report
         env:
           GITHUB_TOKEN: ${{ secrets.PAT_TOKEN }}
