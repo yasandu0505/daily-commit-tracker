@@ -100,17 +100,17 @@ jobs:
 
           # Completely overwrite README with fresh content
           cat > "$README" << EOF
-# Daily Commit Tracker
+          # Daily Commit Tracker
 
-## Statistics for ${TODAY}
+          ## Statistics for ${TODAY}
 
-- **Repositories scanned:** ${TOTAL_REPOS_CHECKED}
-- **Repositories changed:** ${REPOS_WITH_COMMITS}
-- **Total commits:** ${TOTAL_COMMITS}
+          - **Repositories scanned:** ${TOTAL_REPOS_CHECKED}
+          - **Repositories changed:** ${REPOS_WITH_COMMITS}
+          - **Total commits:** ${TOTAL_COMMITS}
 
-[View detailed log](${LOG_FILE})
+          [View detailed log](${LOG_FILE})
 
-EOF
+          EOF
 
           echo "README updated. Preview:"
           sed -n '1,20p' README.md || true
