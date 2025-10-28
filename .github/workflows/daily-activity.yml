@@ -50,10 +50,10 @@ jobs:
 
       - name: Commit and push daily report
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.PAT_TOKEN }}
         run: |
-          git config user.name "GitHub Action"
-          git config user.email "actions@github.com"
+          git config user.name "yasandu0505"
+          git config user.email "yasanduyaka2005@gmail.com"
           git add logs/
           git commit -m "Add daily activity log for $TODAY" || echo "No changes to commit"
-          git push
+          git push https://x-access-token:${PAT_TOKEN}@github.com/yasandu0505/daily-commit-tracker.git
