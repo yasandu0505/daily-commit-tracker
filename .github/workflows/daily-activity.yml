@@ -61,7 +61,7 @@ jobs:
             
             commits=$(curl -s -H "Authorization: token $GH_TOKEN" \
               "https://api.github.com/repos/$repo/commits?since=$since_utc&until=$until_utc&author=$USER_LOGIN" \
-              | jq -r '.[] | "- " + .commit.message + " (" + .html_url + ")"')
+              | jq -r '.[] | "- " + .commit.message')
 
             if [ -n "$commits" ] && [ "$commits" != "null" ]; then
               echo "## [$repo](https://github.com/$repo)" >> logs/$TODAY.md
@@ -98,22 +98,23 @@ jobs:
             echo "" >> "$README"
           fi
 
-          # Build the Latest Activity snippet
-          LATEST_SNIPPET="## Latest activity (${TODAY})\n\n- Repositories scanned: ${TOTAL_REPOS_CHECKED}\n- Repositories changed: ${REPOS_WITH_COMMITS}\n- Total commits (you): ${TOTAL_COMMITS}\n\n[View detailed log](${LOG_FILE})\n\n"
+          # Build the Latest Activity snippet with proper structure
+          LATEST_SNIPPET="# Daily Commit Tracker\n\n## Statistics for ${TODAY}\n\n- **Repositories scanned:** ${TOTAL_REPOS_CHECKED}\n- **Repositories changed:** ${REPOS_WITH_COMMITS}\n- **Total commits:** ${TOTAL_COMMITS}\n\n[View detailed log](${LOG_FILE})\n\n"
 
-          # Remove any previous "Latest activity" section (simple heuristic: remove first occurrence)
-          # Keep the rest of README intact by removing from "## Latest activity" to the next blank line after two newlines
+          # Remove any previous statistics section and headline
+          # Keep the rest of README intact by removing from "# Daily Commit Tracker" to the end
           awk -v RS='' -v ORS='\n\n' '
             BEGIN { printed=0 }
             {
-              if ($0 ~ /^## Latest activity/) {
+              if ($0 ~ /^# Daily Commit Tracker/) {
                 if (printed==0) { printed=1; next }
               }
               print $0
             }' "$README" > "${README}.tmp" || cp "$README" "${README}.tmp"
 
           # Prepend the new Latest snippet to the README.tmp and overwrite README
-          printf "%s\n\n%s" "$LATEST_SNIPPET" "$(cat ${README}.tmp)" > "$README"
+          echo -e "$LATEST_SNIPPET" > "$README"
+          cat "${README}.tmp" >> "$README"
           rm -f "${README}.tmp"
 
           echo "README updated. Preview:"
