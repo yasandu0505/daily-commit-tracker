@@ -1,0 +1,59 @@
+name: Daily GitHub Activity Tracker
+
+on:
+  schedule:
+    - cron: "30 14 * * *"
+  workflow_dispatch: # optional manual trigger
+
+jobs:
+  track_activity:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout this tracker repo
+        uses: actions/checkout@v4
+
+      - name: Set up environment
+        run: |
+          sudo timedatectl set-timezone Asia/Colombo
+          echo "TODAY=$(date +'%Y-%m-%d')" >> $GITHUB_ENV
+
+      - name: Fetch user repos via GitHub API
+        env:
+          GH_TOKEN: ${{ secrets.TRACKER_TOKEN }}
+        run: |
+          mkdir -p logs
+          echo "# Daily Activity Report ($TODAY)" > logs/$TODAY.md
+          echo "" >> logs/$TODAY.md
+          echo "Generated at $(date '+%Y-%m-%d %H:%M:%S %Z')" >> logs/$TODAY.md
+          echo "" >> logs/$TODAY.md
+
+          # Fetch all repos you have access to
+          repos=$(curl -s -H "Authorization: token $GH_TOKEN" "https://api.github.com/user/repos?per_page=100" | jq -r '.[].full_name')
+
+          for repo in $repos; do
+            # Get commits made today by you in that repo
+            commits=$(curl -s -H "Authorization: token $GH_TOKEN" \
+              "https://api.github.com/repos/$repo/commits?since=${TODAY}T00:00:00Z&until=${TODAY}T23:59:59Z&author=$(curl -s -H 'Authorization: token $GH_TOKEN' https://api.github.com/user | jq -r '.login')" \
+              | jq -r '.[] | "- " + .commit.message + " (" + .html_url + ")"')
+
+            if [ -n "$commits" ]; then
+              echo "## [$repo](https://github.com/$repo)" >> logs/$TODAY.md
+              echo "$commits" >> logs/$TODAY.md
+              echo "" >> logs/$TODAY.md
+            fi
+          done
+
+          if ! grep -q "##" logs/$TODAY.md; then
+            echo "_No commits found for today._" >> logs/$TODAY.md
+          fi
+
+      - name: Commit and push daily report
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git config user.name "GitHub Action"
+          git config user.email "actions@github.com"
+          git add logs/
+          git commit -m "Add daily activity log for $TODAY" || echo "No changes to commit"
+          git push
