@@ -1,10 +1,10 @@
 # Daily Commit Tracker
 
-## Statistics for 2025-11-24
+## Statistics for 2025-11-25
 
-- **Repositories scanned:** 60
-- **Repositories changed:** 0
-- **Total commits:** 0
+- **Repositories scanned:** 62
+- **Repositories changed:** 2
+- **Total commits:** 6
 
-[View detailed log](logs/2025-11-24.md)
+[View detailed log](logs/2025-11-25.md)
 
